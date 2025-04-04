@@ -1,0 +1,10 @@
+thop
+tqdm
+torch
+matplotlib
+# torchao==0.8.0
+# torchtune==0.5.0
+torchvision
+deepeval
+datasets
+transformers
