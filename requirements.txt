@@ -1,6 +1,7 @@
 thop
 tqdm
 torch
+numpy
 matplotlib
 # torchao==0.8.0
 # torchtune==0.5.0
