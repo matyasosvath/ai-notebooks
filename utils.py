@@ -1,8 +1,5 @@
-import time
 import torch
 from thop import profile
-
-import constants
 
 
 def compute_flops(
