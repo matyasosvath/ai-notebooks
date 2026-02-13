@@ -7,24 +7,24 @@ from transformers import GPT2LMHeadModel, GPT2Tokenizer
 # GPT-2 as a test tool
 
 
-class GPT2Wrapper(torch.nn.Module):
-    """
-    Simple wrapper around HuggingFace's GPT-2 to match our interface.
-    Makes it easier to swap in different models later.
-    """
-    def __init__(self, model_name='gpt2'):
-        super().__init__()
-        print(f"Loading {model_name}...")
-        self.model = GPT2LMHeadModel.from_pretrained(model_name)
-
-        # Create a simple args object to expose context_length
-        self.args = type('Args', (), {
-            'context_length': self.model.config.n_ctx
-        })()
-
-    def forward(self, idx):
-        output = self.model(idx)
-        return output.logits
+# class GPT2Wrapper(torch.nn.Module):
+#     """
+#     Simple wrapper around HuggingFace's GPT-2 to match our interface.
+#     Makes it easier to swap in different models later.
+#     """
+#     def __init__(self, model_name='gpt2'):
+#         super().__init__()
+#         print(f"Loading {model_name}...")
+#         self.model = GPT2LMHeadModel.from_pretrained(model_name)
+#
+#         # Create a simple args object to expose context_length
+#         self.args = type('Args', (), {
+#             'context_length': self.model.config.n_ctx
+#         })()
+#
+#     def forward(self, idx):
+#         output = self.model(idx)
+#         return output.logits
 
 
 # Main Generation Loop
@@ -113,8 +113,8 @@ def generate(
         idx_cond = (inputs if inputs.size(1) <= model.args.context_length
                    else inputs[:, -model.args.context_length:])
 
-        logits = model(idx_cond)
-        next_token_logits = logits[:, -1, :]
+        outputs = model(idx_cond)
+        next_token_logits = outputs.logits[:, -1, :]
 
         # Apply frequency and presence penalties
         freq_p = decode_kwargs.get('frequency_penalty', 0.0)
@@ -1294,8 +1294,8 @@ def beam_search_decode(
             idx_cond = (seq if seq.size(1) <= model.args.context_length
                         else seq[:, -model.args.context_length:])
 
-            logits = model(idx_cond)
-            next_token_logits = logits[:, -1, :]
+            outputs = model(idx_cond)
+            next_token_logits = outputs.logits[:, -1, :]
 
             # Apply penalties
             next_token_logits = apply_all_penalties(
@@ -1371,8 +1371,9 @@ def diverse_beam_search(
                     continue
 
                 idx_cond = seq if seq.size(1) <= model.args.context_length else seq[:, -model.args.context_length:]
-                logits = model(idx_cond)
-                next_token_logits = logits[:, -1, :]
+                outputs = model(idx_cond)
+                logits = outputs.logits
+                next_token_logits = outputs.logits[:, -1, :]
 
                 # Apply penalties
                 next_token_logits = apply_all_penalties(
@@ -1488,8 +1489,8 @@ def constrained_beam_search(
                 continue
 
             idx_cond = seq if seq.size(1) <= model.args.context_length else seq[:, -model.args.context_length:]
-            logits = model(idx_cond)
-            next_token_logits = logits[:, -1, :].clone()
+            outputs = model(idx_cond)
+            next_token_logits = outputs.logits[:, -1, :]
 
             # Apply penalties (NEW!)
             next_token_logits = apply_all_penalties(
@@ -1600,8 +1601,9 @@ def stochastic_beam_search(
                 continue
 
             idx_cond = seq if seq.size(1) <= model.args.context_length else seq[:, -model.args.context_length:]
-            logits = model(idx_cond)
-            next_token_logits = logits[:, -1, :]
+            outputs = model(idx_cond)
+            logits = outputs.logits
+            next_token_logits = outputs.logits[:, -1, :]
 
             # Apply penalties
             next_token_logits = apply_all_penalties(
@@ -1691,8 +1693,8 @@ def best_of_n_sampling(
         for _ in range(max_new_tokens):
             idx_cond = sequence if sequence.size(1) <= model.args.context_length else sequence[
                 :, -model.args.context_length:]
-            logits = model(idx_cond)
-            next_token_logits = logits[:, -1, :]
+            outputs = model(idx_cond)
+            next_token_logits = outputs.logits[:, -1, :]
 
             probs = F.softmax(next_token_logits / temperature, dim=-1)
             next_token = torch.multinomial(probs, num_samples=1)
